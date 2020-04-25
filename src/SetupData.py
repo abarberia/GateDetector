@@ -44,7 +44,6 @@ def main():
     # Define reshape coordinates for the images
     reshape_x = -1
     reshape_y = -1
-    grayscale = 0
 
     # Define extra margin for boundary detection [pixels]
     extra_x = 1
@@ -71,7 +70,7 @@ def main():
     print('Initialise datahandle')
     datahandle = DataHandle(folder_imgs=folder_imgs, csv_name=csv_name,
                             img_prefix=img_prefix, mask_prefix=mask_prefix,
-                            shape_x=reshape_x, shape_y=reshape_y, grayscale=0)
+                            shape_x=reshape_x, shape_y=reshape_y)
 
     # Load data set with training data
     print('Load image dataset')
@@ -110,12 +109,12 @@ def main():
 
 class DataHandle:
     def __init__(self, folder_imgs, csv_name, img_prefix, mask_prefix, 
-                 shape_x=-1, shape_y=-1, grayscale=0):
+                 shape_x=-1, shape_y=-1):
         self.folder = folder_imgs
         self.files = os.listdir(self.folder)
 
         self.init_csv(csv_name)
-        self.init_img(img_prefix, mask_prefix, shape_x, shape_y, grayscale)
+        self.init_img(img_prefix, mask_prefix, shape_x, shape_y)
 
     def init_csv(self, csv_name):
         self.csv_name = os.path.join(self.folder, csv_name)
@@ -127,12 +126,11 @@ class DataHandle:
                 self.csv.append(row)
         self.csv = np.array(self.csv)
 
-    def init_img(self, img_prefix, mask_prefix, shape_x, shape_y, grayscale):
+    def init_img(self, img_prefix, mask_prefix, shape_x, shape_y):
         self.img_prefix = img_prefix
         self.mask_prefix = mask_prefix
         self.shape_x = shape_x
         self.shape_y = shape_y
-        self.grayscale = grayscale
 
     def load_image_dataset(self):
         self.images = {}
@@ -144,12 +142,8 @@ class DataHandle:
                 img_name = os.path.join(self.folder, file_name)
                 mask_name = os.path.join(self.folder, self.mask_prefix+img_num)
 
-                if self.grayscale:
-                    img_array = cv2.imread(img_name, cv2.IMREAD_GRAYSCALE)
-                    mask_array = cv2.imread(mask_name, cv2.IMREAD_GRAYSCALE)
-                else:
-                    img_array = cv2.imread(img_name)
-                    mask_array = cv2.imread(mask_name)
+                img_array = cv2.imread(img_name)
+                mask_array = cv2.imread(mask_name)
 
                 if self.shape_x != -1 and self.shape_y != -1:
                     # Calculate ratio with original image to scale csv
