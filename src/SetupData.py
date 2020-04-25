@@ -21,7 +21,6 @@ def format_name(name):
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
     master = os.path.dirname(cwd)
-    git = os.path.dirname(master)
 
     # Define folder name with the images, masks and csv files for data handler
     folder_imgs = 'WashingtonOBRace'
@@ -59,12 +58,12 @@ def main():
 
     # Configure names and paths
     folder_imgs = os.path.join(master, folder_imgs)
-    train_txt = os.path.join(git, folder_data, train_txt)
-    validation_txt = os.path.join(git, folder_data, validation_txt)
-    test_txt = os.path.join(git, folder_data, test_txt)
+    train_txt = os.path.join(master, folder_data, train_txt)
+    validation_txt = os.path.join(master, folder_data, validation_txt)
+    test_txt = os.path.join(master, folder_data, test_txt)
     folder_yolo_labels = os.path.join(master, folder_yolo_labels)
     folder_yolo_pred = os.path.join(master, folder_yolo_pred)
-    predictions_txt = os.path.join(git, folder_data, predictions_txt)
+    predictions_txt = os.path.join(master, folder_data, predictions_txt)
     gate_pairs_pickle = os.path.join(master, gate_pairs_pickle)
     yolo_names = os.path.join(master, yolo_names)
 
