@@ -2,9 +2,10 @@
 from cv2 import cv2
 import numpy as np
 import pickle
-import time
+import wget
 import csv
 import os
+import re
 
 def format_name(name):
     # Format image name
@@ -29,7 +30,7 @@ def main():
     mask_prefix = 'mask'
 
     # Define train and validation txt folder and files
-    folder_data = 'darknet'
+    folder_yolo = 'darknet'
     train_txt = 'train.txt'
     validation_txt = 'validation.txt'
     test_txt = 'test.txt'
@@ -38,12 +39,18 @@ def main():
     # Define YOLO parameters
     folder_yolo_labels = 'labels'
     folder_yolo_pred = 'predictions'
+    folder_yolo_data = 'data'
     yolo_names = 'yolo.names'
     gate_pairs_pickle = 'gate_pairs.p'
+    yolo_video = 'video.avi'
+    yolo_default_weights = 'darknet53.conv.74'
 
     # Define reshape coordinates for the images
     reshape_x = -1
     reshape_y = -1
+
+    # Define speed of video for testing
+    video_speed = 3
 
     # Define extra margin for boundary detection [pixels]
     extra_x = 1
@@ -57,23 +64,25 @@ def main():
 
     # Configure names and paths
     folder_imgs = os.path.join(master, folder_imgs)
-    train_txt = os.path.join(master, folder_data, train_txt)
-    validation_txt = os.path.join(master, folder_data, validation_txt)
-    test_txt = os.path.join(master, folder_data, test_txt)
+    folder_yolo = os.path.join(master, folder_yolo)
+    train_txt = os.path.join(folder_yolo, train_txt)
+    validation_txt = os.path.join(folder_yolo, validation_txt)
+    test_txt = os.path.join(folder_yolo, test_txt)
     folder_yolo_labels = os.path.join(master, folder_yolo_labels)
     folder_yolo_pred = os.path.join(master, folder_yolo_pred)
-    predictions_txt = os.path.join(master, folder_data, predictions_txt)
-    gate_pairs_pickle = os.path.join(master, gate_pairs_pickle)
-    yolo_names = os.path.join(master, yolo_names)
+    folder_yolo_data = os.path.join(master, folder_yolo_data)
+    predictions_txt = os.path.join(master, folder_yolo, predictions_txt)
+    gate_pairs_pickle = os.path.join(folder_yolo_data, gate_pairs_pickle)
+    yolo_names = os.path.join(folder_yolo_data, yolo_names)
+    yolo_video = os.path.join(folder_yolo_data, yolo_video)
 
     # Initialise data generator with the folder name
-    print('Initialise datahandle')
     datahandle = DataHandle(folder_imgs=folder_imgs, csv_name=csv_name,
                             img_prefix=img_prefix, mask_prefix=mask_prefix,
                             shape_x=reshape_x, shape_y=reshape_y)
 
     # Load data set with training data
-    print('Load image dataset')
+    print('Loading image dataset from "{:s}"'.format(folder_imgs))
     datahandle.load_image_dataset()
 
     # Show image for testing purposes
@@ -81,15 +90,20 @@ def main():
     print()
     print('Initialise yolo datahandle')
     yolo_datahandle = YOLO_DataHandle(labels_folder=folder_yolo_labels,
+                                      yolo_folder=folder_yolo,
                                       pred_folder=folder_yolo_pred,
-                                      train_file=train_txt, 
+                                      data_folder=folder_yolo_data,
+                                      train_file=train_txt,
                                       validation_file=validation_txt,
                                       test_file=test_txt,
                                       predictions_file=predictions_txt,
                                       gate_pairs_file=gate_pairs_pickle,
                                       names = yolo_names,
+                                      video = yolo_video,
+                                      weights = yolo_default_weights,
                                       datahandle=datahandle,
-                                      extra_x=extra_x, extra_y=extra_y)
+                                      extra_x=extra_x, extra_y=extra_y,
+                                      video_speed=video_speed)
 
     print('Generate img files')
     yolo_datahandle.generate_img_files()
@@ -104,8 +118,22 @@ def main():
     print('Generate prediction output files')
     yolo_datahandle.generate_prediction_output_files()
     yolo_datahandle.save_old_gate_match()
+    yolo_datahandle.generate_video()
+    yolo_datahandle.download_default_weights()
     print('Test implementation')
-    yolo_datahandle.test_bbox_generator('img_373.png')
+    # yolo_datahandle.test_bbox_generator('img_373.png')
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 
 class DataHandle:
     def __init__(self, folder_imgs, csv_name, img_prefix, mask_prefix, 
@@ -212,12 +240,17 @@ class DataHandle:
 
 
 class YOLO_DataHandle:
-    def __init__(self, labels_folder, pred_folder, train_file, validation_file, 
-                 test_file, predictions_file, gate_pairs_file, names, 
-                 datahandle, extra_x, extra_y):
+    def __init__(self, labels_folder, yolo_folder, pred_folder, data_folder,
+                 train_file, validation_file, test_file, predictions_file,
+                 gate_pairs_file, names, video, weights, datahandle, extra_x,
+                 extra_y, video_speed):
         self.labels_folder = labels_folder
+        self.yolo_folder = yolo_folder
         self.pred_folder = pred_folder
+        self.data_folder = data_folder
         self.yolo_names = names
+        self.yolo_video = video
+        self.yolo_default_weights = weights
         self.train_file = train_file
         self.validation_file = validation_file
         self.test_file = test_file
@@ -231,19 +264,21 @@ class YOLO_DataHandle:
 
         self.extra_x = extra_x
         self.extra_y = extra_y
+        self.video_speed = round(video_speed)
 
     def mkdirs(self):
         try:
             os.mkdir(self.pred_folder)
+        except FileExistsError:
+            pass
+        try:
             os.mkdir(self.labels_folder)
         except FileExistsError:
             pass
-
-
-
-
-
-
+        try:
+            os.mkdir(self.labels_folder)
+        except FileExistsError:
+            pass
 
     def generate_img_files(self):
         for img_name in self.datahandle.img_names:
@@ -324,32 +359,6 @@ class YOLO_DataHandle:
         margin_y = margin_y*self.extra_y
         return abs(x_w+margin_x), abs(y_w+margin_y)
 
-    def test_bbox_generator(self, img):
-        img_name = format_name(img)
-        full_img_name = os.path.join(self.labels_folder, img_name)
-        # img = self.datahandle.images[img_name][0]
-        img = cv2.imread(full_img_name+'.png')
-        width, height = img.shape[:2]
-
-        with open(full_img_name+'.txt', 'r') as file:
-            coords = file.readlines()
-        thick = 2
-        color = (0, 0, 0)
-
-        for coord in coords:
-            cds = np.array(coord.strip('\n').split(' ')).astype(float)[1:]
-            x_tl = int((cds[0] - cds[2]/2)*width)
-            y_tl = int((cds[1] - cds[3]/2)*height)
-            x_br = int((cds[0] + cds[2]/2)*width)
-            y_br = int((cds[1] + cds[3]/2)*height)
-            # print(cds, width, height)
-            start = (x_tl, y_tl)
-            end = (x_br, y_br)
-            img = cv2.rectangle(img, start, end, color, thick)
-
-        cv2.imshow('image', img)
-        cv2.waitKey(0)
-
     def split_data(self, train, validation, test):
         self.percentage_train = train
         self.percentage_validation = validation
@@ -406,10 +415,67 @@ class YOLO_DataHandle:
                     pred_file.write(line)
 
     def save_old_gate_match(self):
-        # print(self.gate_pairs_file)
-        # print(type(self.new_old_gate_match))
-        # print(self.new_old_gate_match)
         pickle.dump(self.new_old_gate_match, open(self.gate_pairs_file, 'wb'))
+
+    def generate_video(self):
+        img_array = []
+        sorted_imgs = self.datahandle.img_names
+        sorted_imgs.sort(key=self.natural_keys)
+        count = 0
+        speed_int = int(self.video_speed)
+        speed_float = self.video_speed - int(self.video_speed)
+        for img_name in sorted_imgs:
+            if count%self.video_speed == 0:
+                full_img_name = os.path.join(self.labels_folder, img_name+'.png')
+                img = cv2.imread(full_img_name)
+                h, w, l = img.shape
+                size = (h, w)
+                img_array.append(img)
+            count += 1
+        out = cv2.VideoWriter(self.yolo_video, cv2.VideoWriter_fourcc(*'DIVX'), 15,\
+                              size)
+        for img in img_array:
+            out.write(img)
+        out.release()
+
+    def atoi(self, text):
+        return int(text) if text.isdigit() else text
+
+    def natural_keys(self, text):
+        return [self.atoi(c) for c in re.split(r'(\d+)', text) ]
+
+    def download_default_weights(self):
+        yolo_files = os.listdir(self.yolo_folder)
+        if self.yolo_default_weights not in yolo_files:
+            print(bcolors.WARNING+'Default weights used for training YOLO are missing')
+            print('Downloading them from "https://pjreddie.com/media/files/darknet53.conv.74"'+bcolors.ENDC)
+            url = 'https://pjreddie.com/media/files/darknet53.conv.74'
+            path = os.path.join(self.yolo_folder, self.yolo_default_weights)
+            wget.download(url, path)
+
+    def test_bbox_generator(self, img):
+        img_name = format_name(img)
+        full_img_name = os.path.join(self.labels_folder, img_name)
+        img = cv2.imread(full_img_name+'.png')
+        width, height = img.shape[:2]
+
+        with open(full_img_name+'.txt', 'r') as file:
+            coords = file.readlines()
+        thick = 2
+        color = (0, 0, 0)
+
+        for coord in coords:
+            cds = np.array(coord.strip('\n').split(' ')).astype(float)[1:]
+            x_tl = int((cds[0] - cds[2]/2)*width)
+            y_tl = int((cds[1] - cds[3]/2)*height)
+            x_br = int((cds[0] + cds[2]/2)*width)
+            y_br = int((cds[1] + cds[3]/2)*height)
+            start = (x_tl, y_tl)
+            end = (x_br, y_br)
+            img = cv2.rectangle(img, start, end, color, thick)
+
+        cv2.imshow('image', img)
+        cv2.waitKey(0)
 
 if __name__ == '__main__':
     main()

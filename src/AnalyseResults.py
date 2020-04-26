@@ -1,10 +1,11 @@
 from shapely.geometry import Polygon
 import matplotlib.pyplot as plt
+from cv2 import cv2
 import numpy as np
 import pickle
 import os
 
-from SetupData import format_name
+from SetupData import format_name, bcolors
 
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
@@ -13,12 +14,18 @@ def main():
     # Define folder name with the images, csv files and predictions
     folder_images = 'labels'
     folders_preds = ['predictions_200', 'predictions_650', 'predictions_360']
+    folder_data = 'data'
+    folder_src = 'src'
     img_prefix = 'img'
     gate_pairs_pickle = 'gate_pairs.p'
 
 
-    folders_preds = user_interface(folders_preds, master, folder_images)
+    folders_preds = user_interface(folders_preds, master, folder_images,
+                                   folder_data, folder_src, gate_pairs_pickle)
 
+    # Configure names and paths
+    folder_images = os.path.join(master, folder_images)
+    gate_pairs_pkl = os.path.join(master, folder_data, gate_pairs_pickle)
 
     # Rescaling factor for gate size to compensate from overprediction
     gate_area_rescale_x = 2
@@ -27,27 +34,20 @@ def main():
     original_img_height = 360
 
     # Set ROC parameters
-    range_roc = list(np.linspace(0.01, 0.1, 5)) + list(np.linspace(0.1, 0.9, 10)) + list(np.linspace(0.9, 1, 20))
-    # print(range_roc)
+    # range_roc = list(np.linspace(0.01, 0.1, 5)) + list(np.linspace(0.1, 0.9, 10)) + list(np.linspace(0.9, 1, 20))
     range_roc = list(np.arange(0.05, 1, 0.05))+[1]
     thresh_iou = 0.6
-
-    # Configure names and paths
-    folder_imgs = os.path.join(master, folder_images)
 
     fprs = []
     tprs = []
     labels = []
-
-    folder_imgs = folder_images
-    gate_pairs_pkl = os.path.join(master,gate_pairs_pickle)
 
     for idx, folder_preds in enumerate(folders_preds):
         print('Analysisng "{:s}" ({:d}/{:d})'.format(folder_preds, idx+1, \
                                               len(folders_preds)))
 
         folder_preds = os.path.join(master, folder_preds)
-        roc = ROC(folder_imgs=folder_imgs, folder_preds=folder_preds,
+        roc = ROC(folder_imgs=folder_images, folder_preds=folder_preds,
                   gate_pairs_file=gate_pairs_pkl,
                   gate_area_rescale_x=gate_area_rescale_x,
                   gate_area_rescale_y=gate_area_rescale_y, 
@@ -61,6 +61,27 @@ def main():
         tprs.append(tpr)
         labels.append(labels)
 
+    # Test implementation
+    folder_preds = os.path.join(master, 'predictions_360')
+    roc = ROC(folder_imgs=folder_images, folder_preds=folder_preds,
+                gate_pairs_file=gate_pairs_pkl,
+                gate_area_rescale_x=gate_area_rescale_x,
+                gate_area_rescale_y=gate_area_rescale_y, 
+                rx=original_img_width,
+                ry=original_img_height)
+
+    roc.calc_roc(range_roc=[0.5], thresh_iou=thresh_iou)
+    fpr, tpr, labels = roc.plot_roc()
+
+    fprs.append(fpr)
+    tprs.append(tpr)
+    labels.append(labels)
+    roc.test_threshold('img_51.jpg')
+
+
+
+
+
     coords_used = []
     for coordinates in zip(fprs, tprs, folders_preds):
         if (coordinates[0], coordinates[1]) not in coords_used:
@@ -72,11 +93,26 @@ def main():
     plt.legend()
     plt.show()
 
-def user_interface(default_values, master, folder_images):
+def user_interface(default_values, master, folder_images, folder_data, 
+                   folder_src, data_pckl):
     my_dirs = []
     for d in os.listdir(master):
         if os.path.isdir(os.path.join(master, d)):
             my_dirs.append(d)
+
+    parent_folder = os.path.join(master, folder_data)
+    if folder_images not in os.listdir(master):
+        cwd = os.getcwd()
+        folder_to_run = os.path.join(master.replace(cwd,''),folder_src,'a')[:-1]
+        print(bcolors.WARNING+'\nGround truth folder "{:s}" not there. Make sure to run "python3 {:s}SetupData.py" before running this file\n'.format(folder_images, folder_to_run))
+        quit()
+
+    if data_pckl not in os.listdir(parent_folder):
+        cwd = os.getcwd()
+        folder_to_run = os.path.join(master.replace(cwd,''),folder_src,'a')[:-1]
+        print(bcolors.WARNING+'\nGround truth pickle "{:s}" not in "{:s}". Make sure to run "python3 {:s}SetupData.py" before running this file\n'.format(data_pckl, parent_folder, folder_to_run))
+        quit()
+
 
     while True:
         txt_in = str(input('Write name of folder(s) with predicted images (Enter for default): '))
@@ -90,12 +126,14 @@ def user_interface(default_values, master, folder_images):
         valid = True
         for folder_in in folders_in:
             if folder_in not in my_dirs:
-                print(bcolors.WARNING + 'Could not find folder "{:s}"'.format(folder_in))
+                print(bcolors.WARNING + '\nCould not find folder "{:s}"'.format(folder_in))
                 valid = False
 
         if not valid:
             print('Try again\n'+bcolors.ENDC)
             continue
+
+
 
         for folder_in in folders_in:
             files = os.listdir(os.path.join(master, folder_in))
@@ -106,9 +144,12 @@ def user_interface(default_values, master, folder_images):
             for file in files:
                 if file[-4:] == '.txt':
                     if file not in files_labels:
-                        print(bcolors.WARNING + 'Could not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
+                        print(bcolors.WARNING + '\nCould not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
                         print('Remove the file "{:s}" or add its ground truth to the folder "{:s}"'.format(file, folder_images))
                         valid = False
+                
+
+
 
         if not valid:
             print('Try again\n'+bcolors.ENDC)
@@ -118,15 +159,6 @@ def user_interface(default_values, master, folder_images):
             break
     return folders_in
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 class ROC:
     def __init__(self, folder_imgs, folder_preds, gate_pairs_file, 
@@ -460,8 +492,42 @@ class ROC:
         return self.fpr, self.tpr, self.labels
 
 
-    # def test_threshold(self, img_name):
+    def test_threshold(self, img_name):
+        img_name = format_name(img_name)
+        full_img_name = os.path.join(self.folder_imgs, img_name)
+        img = cv2.imread(full_img_name+'.png')
+        width, height = img.shape[:2]
 
+        with open(full_img_name+'.txt', 'r') as file:
+            coords = file.readlines()
+        thick = 2
+        black = (0, 0, 255)
+        green = (0, 255, 0)
+
+        for gate in self.gate_pairs[img_name]:
+            coord_img = self.img_gates[img_name][int(gate[0])]
+            coord_img_old = self.new_old_gate_match[img_name][tuple(coord_img)]
+            coord_pred = self.pred_gates[img_name][int(gate[1]), 0]
+
+            pred_lef = int((coord_pred[0]-coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
+            pred_rig = int((coord_pred[0]+coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
+            pred_bot = int((coord_pred[1]-coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
+            pred_top = int((coord_pred[1]+coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
+
+            img_gate_old = np.array([(coord_img_old[0], coord_img_old[1]), \
+                            (coord_img_old[2], coord_img_old[3]), \
+                            (coord_img_old[4], coord_img_old[5]), \
+                            (coord_img_old[6], coord_img_old[7]), \
+                            (coord_img_old[0], coord_img_old[1])])
+            pred_gate = np.array([(pred_lef, pred_top), (pred_rig, pred_top), \
+                        (pred_rig, pred_bot), (pred_lef, pred_bot), \
+                        (pred_lef, pred_top)])
+
+            cv2.polylines(img, [img_gate_old], False, green, 2)
+            cv2.polylines(img, [pred_gate], False, black, 2)
+
+        cv2.imshow('image', img)
+        # cv2.waitKey(0)
 
 
 if __name__ == "__main__":
