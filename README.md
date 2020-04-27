@@ -16,20 +16,19 @@ folder.
 1. Run the command: <python3 src/SetupData.py> with your preferred values.
 Default will be the default image size and a video playback speed of 1.
 
-(Optional)
-2. Train the darknet network to the images you uploaded. To do this you need to go to the 
+2. (Optional) Train the darknet network to the images you uploaded. To do this you need to go to the 
 darknet folder. It is first important to make the directory, so run the <make> command.
 If you want to make use of the GPU on your computer or CUDNN, change the corresponding 
 values in the Makefile to 1. You are now ready to train your network.
 Run the command <sh train.sh>. This will start training the data. It will take a while.
 The training will stop after 8000 batches.
 
-3. If you trained your own CNN, it is time to predict the test data to perform the 
+3. 1. If you trained your own CNN, it is time to predict the test data to perform the 
 analysis on. Run the command <sh test.sh -w backup/obj_final.weights>. The output will
 be placed on the folder 'predictions_SIZE_XxSIZE_Y' of 'GateDetector'. A list of 
 pretrained weights are available in "weights/" with the corresponding image size.
 
-3.2 If you want to see your gate detector in action live you can run the command
+3. 2. If you want to see your gate detector in action live you can run the command
 <sh video.sh> and will see the detector working on a video. 
 
 4. To perform data analysis, got back to the 'GateDetector' folder and run the command
