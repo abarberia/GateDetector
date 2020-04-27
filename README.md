@@ -28,7 +28,7 @@ analysis on. Run the command <sh test.sh -w backup/obj_final.weights>. The outpu
 be placed on the folder 'predictions_SIZE_XxSIZE_Y' of 'GateDetector'. A list of 
 pretrained weights are available in "weights/" with the corresponding image size.
 
-3. 2. If you want to see your gate detector in action live you can run the command
+   2. If you want to see your gate detector in action live you can run the command
 <sh video.sh> and will see the detector working on a video. 
 
 4. To perform data analysis, got back to the 'GateDetector' folder and run the command
