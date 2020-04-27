@@ -38,16 +38,21 @@ def main():
 
     # Define YOLO parameters
     folder_yolo_labels = 'labels'
-    folder_yolo_pred = 'predictions'
+    folder_yolo_pred = 'predictions_'
     folder_yolo_data = 'data'
     yolo_names = 'yolo.names'
     gate_pairs_pickle = 'gate_pairs.p'
     yolo_video = 'video.avi'
     yolo_default_weights = 'darknet53.conv.74'
 
+
     # Define reshape coordinates for the images
     reshape_x = -1
     reshape_y = -1
+
+    reshape_x, reshape_y, folder_yolo_pred = user_interface(reshape_x, 
+                                                            reshape_y,
+                                                            folder_yolo_pred)
 
     # Define speed of video for testing
     video_speed = 3
@@ -82,13 +87,12 @@ def main():
                             shape_x=reshape_x, shape_y=reshape_y)
 
     # Load data set with training data
-    print('Loading image dataset from "{:s}"'.format(folder_imgs))
+    print('\nLoading image dataset from "{:s}"...'.format(folder_imgs))
     datahandle.load_image_dataset()
 
     # Show image for testing purposes
     # datahandle.show_image(name='img_10.png')
-    print()
-    print('Initialise yolo datahandle')
+    # print('Initialise yolo datahandle')
     yolo_datahandle = YOLO_DataHandle(labels_folder=folder_yolo_labels,
                                       yolo_folder=folder_yolo,
                                       pred_folder=folder_yolo_pred,
@@ -105,23 +109,98 @@ def main():
                                       extra_x=extra_x, extra_y=extra_y,
                                       video_speed=video_speed)
 
-    print('Generate img files')
+    print('Generating img files...')
     yolo_datahandle.generate_img_files()
-    print('Generate label files')
+    print('Generating label files...')
     yolo_datahandle.generate_label_files()
-    print('Generate bboxes')
+    print('Generating bounding boxes...')
     yolo_datahandle.generate_bounding_boxes()
-    print('Split train/validation data')
+    print('Splitting train/validation data...')
     yolo_datahandle.split_data(train=percentage_train, 
                                validation=percentage_validation,
                                test=percentage_test)
-    print('Generate prediction output files')
+    print('Generating prediction output files...')
     yolo_datahandle.generate_prediction_output_files()
     yolo_datahandle.save_old_gate_match()
     yolo_datahandle.generate_video()
     yolo_datahandle.download_default_weights()
     print('Test implementation')
-    # yolo_datahandle.test_bbox_generator('img_373.png')
+    yolo_datahandle.test_bbox_generator('img_51.png')
+
+def user_interface(default_value_x, default_value_y, folder):
+    while True:
+        txt_in = str(input('Do you want to resize the images? (Y/n): '))
+        txt_in = txt_in.lower()
+
+        valid = True
+        if txt_in not in ['yes', 'y', 'no', 'n', '']:
+            print(bcolors.WARNING+'Input "{:s}" not valid. Should be format ("Y"/"n")'.format(txt_in))
+            valid = False
+
+        if valid and txt_in in ['', 'no', 'n']:
+            txt_in_2 = [default_value_x, default_value_y]
+
+        if valid and txt_in in ['yes', 'y']:
+            while True:
+                print('\nWhat image size do you want? Enter for default')
+                txt_in_2 = str(input('Image size (pixel_width, pixel_height): '))
+                valid_2 = True
+                raw_input = txt_in_2
+                txt_in_2 = txt_in_2.split()
+                txt_in_2 = [x.strip('(').strip(',').strip(')') for x in txt_in_2]
+
+                if txt_in_2 == []:
+                    txt_in_2 = [default_value_x, default_value_y]
+                else:
+                    if len(txt_in_2) != 2:
+                        print(bcolors.WARNING+'Input "{:s}" not in format "(int, int)."'.format(raw_input))
+                        valid_2 = False
+                    else:
+                        try:
+                            txt_in_2[0] = int(txt_in_2[0])
+                        except ValueError:
+                            valid_2 = False
+                            print(bcolors.WARNING+'Input "{:s}" not in format "(int, int)."'.format(raw_input))
+                        if valid_2:
+                            try: 
+                                txt_in_2[1] = int(txt_in_2[1])
+                            except ValueError:
+                                valid_2 = False
+                                print(bcolors.WARNING+'Input "{:s}" not in format "(int, int)."'.format(raw_input))
+                if valid_2 and txt_in_2[0] < 1 and txt_in_2[0] != default_value_x:
+                    print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                    valid_2 = False
+                if valid_2 and txt_in_2[1] < 1 and txt_in_2[1] != default_value_y:
+                    print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                    valid_2 = False
+                if valid_2 and txt_in_2[0] == default_value_x:
+                    if txt_in_2[1] != default_value_y:
+                        print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                        valid_2 = False
+                if valid_2 and txt_in_2[1] == default_value_y:
+                    if txt_in_2[0] != default_value_x:
+                        print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                        valid_2 = False
+                if not valid_2:
+                    print('Try again'+bcolors.ENDC)
+                    continue
+                if valid_2:
+                    break
+
+        if not valid:
+            print('Try again\n'+bcolors.ENDC)
+            continue
+
+        if valid:
+            width, height = [int(x) for x in txt_in_2]
+            break
+    if width == default_value_x or height == default_value_y:
+        width = default_value_x
+        height = default_value_y
+        folder_name = folder+'360x360'
+    else:
+        folder_name = folder+str(width)+'x'+str(height)
+    return width, height, folder_name
 
 
 class bcolors:
@@ -175,9 +254,8 @@ class DataHandle:
 
                 if self.shape_x != -1 and self.shape_y != -1:
                     # Calculate ratio with original image to scale csv
-                    r_x = float(self.shape_x)/img_array.shape[0]
-                    r_y = float(self.shape_y)/img_array.shape[1]
-
+                    r_x = self.shape_x/img_array.shape[1]
+                    r_y = self.shape_y/img_array.shape[0]
                     img_array = cv2.resize(img_array, 
                                           (self.shape_x, self.shape_y))
                     mask_array = cv2.resize(mask_array,
@@ -185,7 +263,6 @@ class DataHandle:
                 else:
                     r_x = 1
                     r_y = 1
-
                 coords = self.mine_gate_coordinates(file_name, r_x, r_y)
                 self.images[file_name[:-4]] = [img_array, mask_array, coords]
                 self.img_names.append(file_name[:-4])
@@ -195,8 +272,9 @@ class DataHandle:
         name = format_name(name)+'.png'
         idxs = np.where(self.csv[:,0] == name)
         coords = self.csv[idxs][:,1:].astype(int)
-        coords[0::2] = coords[0::2]*ratio_x
-        coords[1::2] = coords[1::2]*ratio_y
+        for idx, coord in enumerate(coords):
+            coords[idx][0::2] = coord[0::2]*ratio_x
+            coords[idx][1::2] = coord[1::2]*ratio_y
         return coords
 
     def get_gate_coordinates(self, name):
@@ -215,12 +293,11 @@ class DataHandle:
                 cv2.imshow('Mask', img[1])
         else:
             img_name = os.path.join(self.folder, name+'.png')
-            img = cv2.imread(img_name)
-            # self.paint_corners(img_name, img)
+            img = self.images[name][0]
             cv2.imshow('Image', img)
             if mask:
                 mask_name = os.path.join(self.folder, 'mask'+name[3:]+'.png')
-                mask = cv2.imread(mask_name)
+                mask = self.images[name][1]
                 cv2.imshow('Mask', mask)
         cv2.waitKey(0)
 
@@ -304,7 +381,6 @@ class YOLO_DataHandle:
             label_png = label+'.png'
             label_txt = label+'.txt'
             img = self.datahandle.images[label][0]
-            # img = cv2.imread(os.path.join(self.labels_folder, label_png))
             width = len(img[0])
             height = len(img)
 
@@ -427,7 +503,7 @@ class YOLO_DataHandle:
         for img_name in sorted_imgs:
             if count%self.video_speed == 0:
                 full_img_name = os.path.join(self.labels_folder, img_name+'.png')
-                img = cv2.imread(full_img_name)
+                img = self.datahandle.images[img_name][0]
                 h, w, l = img.shape
                 size = (h, w)
                 img_array.append(img)
@@ -456,14 +532,14 @@ class YOLO_DataHandle:
     def test_bbox_generator(self, img):
         img_name = format_name(img)
         full_img_name = os.path.join(self.labels_folder, img_name)
-        img = cv2.imread(full_img_name+'.png')
-        width, height = img.shape[:2]
+        img = self.datahandle.images[img_name][0]
+        height, width = img.shape[:2]
 
         with open(full_img_name+'.txt', 'r') as file:
             coords = file.readlines()
         thick = 2
-        color = (0, 0, 0)
-
+        color = (0, 0, 255)
+        green = (0, 255, 0)
         for coord in coords:
             cds = np.array(coord.strip('\n').split(' ')).astype(float)[1:]
             x_tl = int((cds[0] - cds[2]/2)*width)
@@ -473,6 +549,16 @@ class YOLO_DataHandle:
             start = (x_tl, y_tl)
             end = (x_br, y_br)
             img = cv2.rectangle(img, start, end, color, thick)
+
+        coords_img = self.datahandle.images[img_name][2]
+        for coords in coords_img:
+        
+            img_gate_old = np.array([(coords[0], coords[1]), \
+                            (coords[2], coords[3]), \
+                            (coords[4], coords[5]), \
+                            (coords[6], coords[7]), \
+                            (coords[0], coords[1])])
+            cv2.polylines(img, [img_gate_old], False, green, 2)
 
         cv2.imshow('image', img)
         cv2.waitKey(0)

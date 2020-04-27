@@ -13,14 +13,14 @@ def main():
 
     # Define folder name with the images, csv files and predictions
     folder_images = 'labels'
-    folders_preds = ['predictions_200', 'predictions_650', 'predictions_360']
+    folders_preds = ['predictions_200x200', 'predictions_650x650', 'predictions_360x360']
     folder_data = 'data'
     folder_src = 'src'
     img_prefix = 'img'
     gate_pairs_pickle = 'gate_pairs.p'
 
 
-    folders_preds = user_interface(folders_preds, master, folder_images,
+    folders_preds, w, h = user_interface(folders_preds, master, folder_images,
                                    folder_data, folder_src, gate_pairs_pickle)
 
     # Configure names and paths
@@ -30,11 +30,10 @@ def main():
     # Rescaling factor for gate size to compensate from overprediction
     gate_area_rescale_x = 2
     gate_area_rescale_y = 2
-    original_img_width = 360
-    original_img_height = 360
+    original_img_width = w
+    original_img_height = h
 
     # Set ROC parameters
-    # range_roc = list(np.linspace(0.01, 0.1, 5)) + list(np.linspace(0.1, 0.9, 10)) + list(np.linspace(0.9, 1, 20))
     range_roc = list(np.arange(0.05, 1, 0.05))+[1]
     thresh_iou = 0.6
 
@@ -62,7 +61,7 @@ def main():
         labels.append(labels)
 
     # Test implementation
-    folder_preds = os.path.join(master, 'predictions_360')
+    folder_preds = os.path.join(master, 'predictions_360x360')
     roc = ROC(folder_imgs=folder_images, folder_preds=folder_preds,
                 gate_pairs_file=gate_pairs_pkl,
                 gate_area_rescale_x=gate_area_rescale_x,
@@ -77,10 +76,6 @@ def main():
     tprs.append(tpr)
     labels.append(labels)
     roc.test_threshold('img_51.jpg')
-
-
-
-
 
     coords_used = []
     for coordinates in zip(fprs, tprs, folders_preds):
@@ -115,7 +110,7 @@ def user_interface(default_values, master, folder_images, folder_data,
 
 
     while True:
-        txt_in = str(input('Write name of folder(s) with predicted images (Enter for default): '))
+        txt_in = str(input('Write name of folder(s) with predicted images (Enter for default, press "1" to see options.): '))
 
         if txt_in == '':
             for value in default_values:
@@ -124,32 +119,57 @@ def user_interface(default_values, master, folder_images, folder_data,
         folders_in = txt_in.strip().split(' ')
 
         valid = True
-        for folder_in in folders_in:
-            if folder_in not in my_dirs:
-                print(bcolors.WARNING + '\nCould not find folder "{:s}"'.format(folder_in))
-                valid = False
-
-        if not valid:
-            print('Try again\n'+bcolors.ENDC)
+        if folders_in == ['1']:
+            print('Options are:')
+            for folder in my_dirs:
+                if folder[:11] == 'predictions':
+                    print('\t', folder)
+            valid = False
             continue
 
+        if valid:
+            for folder_in in folders_in:
+                if valid and folder_in not in my_dirs:
+                    print(bcolors.WARNING + '\nCould not find folder "{:s}"'.format(folder_in))
+                    valid = False
+                if valid and len(folder_in) < len('predictions'):
+                    print(bcolors.WARNING + '\nInvalid folder selection "{:s}".'.format(folder_in))
+                    valid = False
+                if valid and folder_in[:11] != 'predictions':
+                    print(bcolors.WARNING + '\nInvalid folder selection "{:s}".'.format(folder_in))
+                    valid = False
+            if not valid:
+                print('Options are:')
+                for folder in my_dirs:
+                    if folder[:11] == 'predictions':
+                        print('\t', folder)
+                print()
 
-
-        for folder_in in folders_in:
-            files = os.listdir(os.path.join(master, folder_in))
-            files_labels = os.listdir(os.path.join(master,folder_images))
-            if len(files) == 0:
-                print(bcolors.WARNING+'Folder "{:s}" is empty.'.format(folder_in))
-                valid = False
-            for file in files:
-                if file[-4:] == '.txt':
-                    if file not in files_labels:
-                        print(bcolors.WARNING + '\nCould not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
-                        print('Remove the file "{:s}" or add its ground truth to the folder "{:s}"'.format(file, folder_images))
-                        valid = False
-                
-
-
+        if valid:
+            for folder_in in folders_in:
+                files = os.listdir(os.path.join(master, folder_in))
+                files_labels = os.listdir(os.path.join(master,folder_images))
+                if len(files) == 0:
+                    print(bcolors.WARNING+'Folder "{:s}" is empty.'.format(folder_in))
+                    valid = False
+                for file in files:
+                    if file[-4:] == '.txt':
+                        if file not in files_labels:
+                            print(bcolors.WARNING + '\nCould not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
+                            print('Remove the file "{:s}" or add its ground truth to the folder "{:s}"'.format(file, folder_images))
+                            valid = False
+                            quit()
+                    if file[-4:] == '.jpg':
+                        png_file = file[:-4]+'.png'
+                        if png_file not in files_labels:
+                            print(bcolors.WARNING + '\nCould not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
+                            print('Remove the file "{:s}" or add its ground truth to the folder "{:s}"'.format(file, folder_images))
+                            valid = False
+                            quit()
+                        else:
+                            img_name = os.path.join(master, folder_images, png_file)
+                            img = cv2.imread(img_name)
+                            height, width = img.shape[:2]
 
         if not valid:
             print('Try again\n'+bcolors.ENDC)
@@ -157,7 +177,7 @@ def user_interface(default_values, master, folder_images, folder_data,
 
         if valid:
             break
-    return folders_in
+    return folders_in, width, height
 
 
 class ROC:
@@ -482,7 +502,6 @@ class ROC:
         self.tpr = [1] + self.tpr
         self.labels = ['0.0'] + self.labels
 
-
         # coords_used = []
         # for idx, label in enumerate(self.labels):
         #     if tuple([self.fpr[idx], self.tpr[idx]]) not in coords_used:
@@ -496,7 +515,7 @@ class ROC:
         img_name = format_name(img_name)
         full_img_name = os.path.join(self.folder_imgs, img_name)
         img = cv2.imread(full_img_name+'.png')
-        width, height = img.shape[:2]
+        height, width = img.shape[:2]
 
         with open(full_img_name+'.txt', 'r') as file:
             coords = file.readlines()
@@ -505,26 +524,28 @@ class ROC:
         green = (0, 255, 0)
 
         for gate in self.gate_pairs[img_name]:
-            coord_img = self.img_gates[img_name][int(gate[0])]
-            coord_img_old = self.new_old_gate_match[img_name][tuple(coord_img)]
-            coord_pred = self.pred_gates[img_name][int(gate[1]), 0]
+            if gate[0] != None:
+                coord_img = self.img_gates[img_name][int(gate[0])]
+                coord_img_old = self.new_old_gate_match[img_name][tuple(coord_img)]
 
-            pred_lef = int((coord_pred[0]-coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
-            pred_rig = int((coord_pred[0]+coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
-            pred_bot = int((coord_pred[1]-coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
-            pred_top = int((coord_pred[1]+coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
+                img_gate_old = np.array([(coord_img_old[0], coord_img_old[1]), \
+                                (coord_img_old[2], coord_img_old[3]), \
+                                (coord_img_old[4], coord_img_old[5]), \
+                                (coord_img_old[6], coord_img_old[7]), \
+                                (coord_img_old[0], coord_img_old[1])])
+                cv2.polylines(img, [img_gate_old], False, green, 2)
 
-            img_gate_old = np.array([(coord_img_old[0], coord_img_old[1]), \
-                            (coord_img_old[2], coord_img_old[3]), \
-                            (coord_img_old[4], coord_img_old[5]), \
-                            (coord_img_old[6], coord_img_old[7]), \
-                            (coord_img_old[0], coord_img_old[1])])
-            pred_gate = np.array([(pred_lef, pred_top), (pred_rig, pred_top), \
-                        (pred_rig, pred_bot), (pred_lef, pred_bot), \
-                        (pred_lef, pred_top)])
+            if gate[1] != None:
+                coord_pred = self.pred_gates[img_name][int(gate[1]), 0]
+                pred_lef = int((coord_pred[0]-coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
+                pred_rig = int((coord_pred[0]+coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
+                pred_bot = int((coord_pred[1]-coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
+                pred_top = int((coord_pred[1]+coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
 
-            cv2.polylines(img, [img_gate_old], False, green, 2)
-            cv2.polylines(img, [pred_gate], False, black, 2)
+                pred_gate = np.array([(pred_lef, pred_top), (pred_rig, pred_top), \
+                            (pred_rig, pred_bot), (pred_lef, pred_bot), \
+                            (pred_lef, pred_top)])
+                cv2.polylines(img, [pred_gate], False, black, 2)
 
         cv2.imshow('image', img)
         # cv2.waitKey(0)
