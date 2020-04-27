@@ -88,6 +88,7 @@ def main():
     plt.legend()
     plt.show()
 
+# User interface for folder name
 def user_interface(default_values, master, folder_images, folder_data, 
                    folder_src, data_pckl):
     my_dirs = []
@@ -194,6 +195,7 @@ class ROC:
         self.init_preds()
         self.init_imgs()
 
+    # Initialise prediction data
     def init_preds(self):
         self.img_names = []
         self.predicted_gates = {}
@@ -218,6 +220,7 @@ class ROC:
                         gate_list.append(np.array(gate_coord))
                     self.predicted_gates[img_name] = gate_list
 
+    # Initialise ground truth dta
     def init_imgs(self):
         self.img_gates = {}
         for img_name in self.img_names:
@@ -234,6 +237,7 @@ class ROC:
                 self.img_gates[img_name] = gate_list
         self.new_old_gate_match = pickle.load(open(self.gate_pairs_file, 'rb'))
 
+    # Calculate ROC curve
     def calc_roc(self, range_roc, thresh_iou):
         self.tpr = []
         self.fpr = []
@@ -248,7 +252,7 @@ class ROC:
 
             self.apply_threshold(thresh)
             self.associate_gates()
-            self.calc_companion_matrix(thresh_iou)
+            self.calc_confusion_matrix(thresh_iou)
             if self.folder_imgs == 'labels_200':
                 print("({:f})->TP, FP, FN, TN: {:d}, {:d}, {:d}, {:f}".format(thresh, self.tp, self.fp, self.fn, self.tn))
 
@@ -270,6 +274,7 @@ class ROC:
             self.fpavg.append(fpavg)
             self.labels.append('{:.2f}'.format(thresh))
 
+    # Apply threshold to what is considered a gate
     def apply_threshold(self, thresh):
         self.pred_gates = {}
         for img_name in self.img_names:
@@ -281,6 +286,7 @@ class ROC:
                     updated_list.append(gate)
             self.pred_gates[img_name] = np.array(updated_list)
 
+    # Associate ground truth gates and predicted gates
     def associate_gates(self):
         self.gate_pairs = {}
     
@@ -416,6 +422,7 @@ class ROC:
                     actual_pairs = np.array(actual_pairs)
                     self.gate_pairs[img_name] = actual_pairs
 
+    # Find gate closest to ground truth
     def closest_in_list(self, gate_pairs):
         tmp_shape = np.shape(gate_pairs)[:2]
         dists = gate_pairs[:,:,2]
@@ -432,7 +439,8 @@ class ROC:
                                     new_pairs[:,min_col+1:]), axis=1)
         return pair, new_pairs
 
-    def calc_companion_matrix(self, thresh_iou):
+    # Calculate confusion matrix
+    def calc_confusion_matrix(self, thresh_iou):
         for img_name in self.img_names:
             gate_area = 0
             n_gates = 0
@@ -461,6 +469,7 @@ class ROC:
             else:
                 self.tn = 0
 
+    # Calculate area of gate
     def calc_gate_area_i(self, img_name, gate):
         coord_pred = self.pred_gates[img_name][int(gate[1]), 0]
         pred_lef = coord_pred[0]-coord_pred[2]/2/self.gate_area_rescale_x
@@ -470,6 +479,7 @@ class ROC:
         pred_area = (pred_rig - pred_lef) * (pred_top - pred_bot)
         return pred_area
 
+    # Calculate IOU
     def calc_iou(self, img_name, gate):
         # Coords are in format(x_center, y_center, x_width, y_width)
         coord_img = self.img_gates[img_name][int(gate[0])]
@@ -497,6 +507,7 @@ class ROC:
 
         return overlap/union, pred_gate.area
 
+    # Get FPR, TPS and labels
     def plot_roc(self):
         self.fpr = [1] + self.fpr
         self.tpr = [1] + self.tpr
@@ -510,7 +521,7 @@ class ROC:
 
         return self.fpr, self.tpr, self.labels
 
-
+    # Test threshold calculator by showing output gates on image
     def test_threshold(self, img_name):
         img_name = format_name(img_name)
         full_img_name = os.path.join(self.folder_imgs, img_name)

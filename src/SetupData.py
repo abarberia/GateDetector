@@ -1,4 +1,3 @@
-# import tensorflow as tf
 from cv2 import cv2
 import numpy as np
 import pickle
@@ -7,17 +6,6 @@ import csv
 import os
 import re
 
-def format_name(name):
-    # Format image name
-    name = name[name.index('img_'):]
-
-    if name[-4:] == '.png':
-        name = name[:-4]
-    if name[-4:] == '.jpg':
-        name = name[:-4]
-    if name[-4:] == '.txt':
-        name = name[:-4]
-    return name
 
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
@@ -50,14 +38,13 @@ def main():
     reshape_x = -1
     reshape_y = -1
 
-    reshape_x, reshape_y, folder_yolo_pred = user_interface(reshape_x, 
+    # Get image size, folder and speed of video from user input
+    reshape_x, reshape_y, folder_yolo_pred, video_speed = user_interface(reshape_x, 
                                                             reshape_y,
                                                             folder_yolo_pred)
 
-    # Define speed of video for testing
-    video_speed = 3
 
-    # Define extra margin for boundary detection [pixels]
+    # Define extra margin for boundary detection [pixels] (+= img width/height)
     extra_x = 1
     extra_y = 1
 
@@ -81,7 +68,6 @@ def main():
     yolo_names = os.path.join(folder_yolo_data, yolo_names)
     yolo_video = os.path.join(folder_yolo_data, yolo_video)
 
-    # Initialise data generator with the folder name
     datahandle = DataHandle(folder_imgs=folder_imgs, csv_name=csv_name,
                             img_prefix=img_prefix, mask_prefix=mask_prefix,
                             shape_x=reshape_x, shape_y=reshape_y)
@@ -90,9 +76,6 @@ def main():
     print('\nLoading image dataset from "{:s}"...'.format(folder_imgs))
     datahandle.load_image_dataset()
 
-    # Show image for testing purposes
-    # datahandle.show_image(name='img_10.png')
-    # print('Initialise yolo datahandle')
     yolo_datahandle = YOLO_DataHandle(labels_folder=folder_yolo_labels,
                                       yolo_folder=folder_yolo,
                                       pred_folder=folder_yolo_pred,
@@ -127,7 +110,9 @@ def main():
     print('Test implementation')
     yolo_datahandle.test_bbox_generator('img_51.png')
 
+# User interface for image size, folder name and video speed
 def user_interface(default_value_x, default_value_y, folder):
+    # Handle image size and folder name
     while True:
         txt_in = str(input('Do you want to resize the images? (Y/n): '))
         txt_in = txt_in.lower()
@@ -200,7 +185,40 @@ def user_interface(default_value_x, default_value_y, folder):
         folder_name = folder+'360x360'
     else:
         folder_name = folder+str(width)+'x'+str(height)
-    return width, height, folder_name
+
+    # Handle video speed
+    while True:
+        txt_in = str(input('Select video playback speed up (int): '))
+        valid = True
+        if txt_in.strip() == '':
+            txt_in = '1'
+        try:
+            txt_in = int(txt_in)
+        except ValueError:
+            print(bcolors.WARNING+'Input "{:s}" is not an integer.'.format(txt_in))
+            valid = False
+        if valid and txt_in < 1:
+            print(bcolors.WARNING+'Number "{:d}" is not valid. Value has to be positive.'.format(txt_in))
+            valid = False
+        if not valid:
+            print('Try again\n'+bcolors.ENDC)
+            continue
+
+        if valid:
+            video_speed =txt_in
+            break
+    return width, height, folder_name, video_speed
+
+# Format image name
+def format_name(name):
+    name = name[name.index('img_'):]
+    if name[-4:] == '.png':
+        name = name[:-4]
+    if name[-4:] == '.jpg':
+        name = name[:-4]
+    if name[-4:] == '.txt':
+        name = name[:-4]
+    return name
 
 
 class bcolors:
@@ -223,6 +241,7 @@ class DataHandle:
         self.init_csv(csv_name)
         self.init_img(img_prefix, mask_prefix, shape_x, shape_y)
 
+    # Initialise csv data
     def init_csv(self, csv_name):
         self.csv_name = os.path.join(self.folder, csv_name)
         self.csv = []
@@ -233,12 +252,14 @@ class DataHandle:
                 self.csv.append(row)
         self.csv = np.array(self.csv)
 
+    # Initialise image data
     def init_img(self, img_prefix, mask_prefix, shape_x, shape_y):
         self.img_prefix = img_prefix
         self.mask_prefix = mask_prefix
         self.shape_x = shape_x
         self.shape_y = shape_y
 
+    # Read images and assign to dictionary
     def load_image_dataset(self):
         self.images = {}
         self.img_names = []
@@ -268,6 +289,7 @@ class DataHandle:
                 self.img_names.append(file_name[:-4])
                 self.n_images += 1
 
+    # Get gate coordinates from csv file and scale them
     def mine_gate_coordinates(self, name, ratio_x, ratio_y):
         name = format_name(name)+'.png'
         idxs = np.where(self.csv[:,0] == name)
@@ -277,17 +299,18 @@ class DataHandle:
             coords[idx][1::2] = coord[1::2]*ratio_y
         return coords
 
+    # Get gate coordinates by image name
     def get_gate_coordinates(self, name):
         name = format_name(name)
         return self.images[name][2]
 
+    # Show image for visualisation
     def show_image(self, name, edited=0, mask=0):
         # Format image name
         name = format_name(name)
 
         if edited:
             img = self.images[name]
-            # self.paint_corners(name, img)
             cv2.imshow('Image', img[0])
             if mask:
                 cv2.imshow('Mask', img[1])
@@ -301,10 +324,10 @@ class DataHandle:
                 cv2.imshow('Mask', mask)
         cv2.waitKey(0)
 
+    # Paint corners for visualisation
     def paint_corners(self, name, img):
         kernel = np.arange(-5, 5)
         black = [0, 0, 0]
-
         coords = self.get_gate_coordinates(name)
 
         for coord in coords:
@@ -343,6 +366,7 @@ class YOLO_DataHandle:
         self.extra_y = extra_y
         self.video_speed = round(video_speed)
 
+    # Make sure required folders are present
     def mkdirs(self):
         try:
             os.mkdir(self.pred_folder)
@@ -357,6 +381,7 @@ class YOLO_DataHandle:
         except FileExistsError:
             pass
 
+    # Generate image files in ground truth folder
     def generate_img_files(self):
         for img_name in self.datahandle.img_names:
             img_name = format_name(img_name)+'.png'
@@ -364,6 +389,7 @@ class YOLO_DataHandle:
             # print(self.datahandle.images[img_name[:-4]])
             cv2.imwrite(full_img_name, self.datahandle.images[img_name[:-4]][0])
 
+    # Generate image txt files in ground truth folder
     def generate_label_files(self):
         self.labels = []
         for img_name in self.datahandle.img_names:
@@ -375,6 +401,7 @@ class YOLO_DataHandle:
             except FileExistsError:
                 continue
 
+    # Generate bounding boxes from csv coordinates
     def generate_bounding_boxes(self):
         self.new_old_gate_match = {}
         for label in self.datahandle.img_names:
@@ -414,6 +441,7 @@ class YOLO_DataHandle:
             # print(label, new_old_gate_match)
             self.new_old_gate_match[label] = new_old_gate_match
 
+    # Get bounding box dimension from csv coordinates
     def get_gate_dimensions(self, coords):
         coords = np.array(coords)
         x_c = np.average(coords[0::2])
@@ -422,6 +450,7 @@ class YOLO_DataHandle:
         y_w = ((coords[5]+coords[7]) - (coords[1]+coords[3]))/2
         return x_c, y_c, x_w, y_w
 
+    # Limit bounding box edge expansion to image size
     def bound_edges(self, x_c, y_c, x_w, y_w, width, height):
         bound_top = y_c + y_w/2
         bound_bot = y_c - y_w/2
@@ -435,6 +464,7 @@ class YOLO_DataHandle:
         margin_y = margin_y*self.extra_y
         return abs(x_w+margin_x), abs(y_w+margin_y)
 
+    # Split data in training, validation and testing
     def split_data(self, train, validation, test):
         self.percentage_train = train
         self.percentage_validation = validation
@@ -478,6 +508,7 @@ class YOLO_DataHandle:
         file_train.close()
         file_validation.close()
 
+    # Generate txt file to be used in the predictions
     def generate_prediction_output_files(self):
         with open(self.predictions_file, 'w') as pred_file:
             with open(self.test_file, 'r') as test_file:
@@ -490,9 +521,11 @@ class YOLO_DataHandle:
                     line = name_png+' '+name+'\n'
                     pred_file.write(line)
 
+    # Save image gates data to pickle to be accessed by data analyser
     def save_old_gate_match(self):
         pickle.dump(self.new_old_gate_match, open(self.gate_pairs_file, 'wb'))
 
+    # Generate video by concatenating images
     def generate_video(self):
         img_array = []
         sorted_imgs = self.datahandle.img_names
@@ -514,12 +547,15 @@ class YOLO_DataHandle:
             out.write(img)
         out.release()
 
+    # Function required for image sorting for video
     def atoi(self, text):
         return int(text) if text.isdigit() else text
 
+    # Function required for image sorting for video
     def natural_keys(self, text):
         return [self.atoi(c) for c in re.split(r'(\d+)', text) ]
 
+    # Ensure default weights are downloaded from internet for own training
     def download_default_weights(self):
         yolo_files = os.listdir(self.yolo_folder)
         if self.yolo_default_weights not in yolo_files:
@@ -529,6 +565,7 @@ class YOLO_DataHandle:
             path = os.path.join(self.yolo_folder, self.yolo_default_weights)
             wget.download(url, path)
 
+    # Test bounding box generator by showing image
     def test_bbox_generator(self, img):
         img_name = format_name(img)
         full_img_name = os.path.join(self.labels_folder, img_name)
