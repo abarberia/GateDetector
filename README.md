@@ -13,24 +13,31 @@ folder.
 
 4 Steps are necessary to perform the whole analysis of the data.
 
-1. Run the command: <\python3 src/SetupData.py\> with your preferred values.
-Default will be the default image size and a video playback speed of 1.
+1. Run the command: 
+>python3 src/SetupData.py
+with your preferred values. Default will be the default image size and a video playback 
+speed of 1.
 
 2. (Optional) Train the darknet network to the images you uploaded. To do this you need to go to the 
-darknet folder. It is first important to make the directory, so run the <\make\> command.
-If you want to make use of the GPU on your computer or CUDNN, change the corresponding 
+darknet folder. It is first important to make the directory, so run the 
+>make
+command. If you want to make use of the GPU on your computer or CUDNN, change the corresponding 
 values in the Makefile to 1. You are now ready to train your network.
-Run the command <\sh train.sh\>. This will start training the data. It will take a while.
-The training will stop after 8000 batches.
+Run the command 
+>sh train.sh
+This will start training the data. It will take a while. The training will stop after 8000 batches.
 
 3. 1. If you trained your own CNN, it is time to predict the test data to perform the 
-analysis on. Run the command <\sh test.sh -w backup/obj_final.weights\>. The output will
-be placed on the folder 'predictions_SIZE_XxSIZE_Y' of 'GateDetector'. A list of 
+analysis on. Run the command 
+>sh test.sh -w backup/obj_final.weights
+The output will be placed on the folder 'predictions_SIZE_XxSIZE_Y' of 'GateDetector'. A list of 
 pretrained weights are available in "weights/" with the corresponding image size.
 
    2. If you want to see your gate detector in action live you can run the command
-<\sh video.sh\> and will see the detector working on a video. 
+>sh video.s
+and will see the detector working on a video. 
 
 4. To perform data analysis, got back to the 'GateDetector' folder and run the command
-<\python3 AnalyseResults.py\>. Enter the name of the folder with the data generated, or see
-the default examples used. An image showing the results of an exemplary gate is showed.
+>python3 AnalyseResults.py
+Enter the name of the folder with the data generated, or see the default examples used. 
+An image showing the results of an exemplary gate is showed.
