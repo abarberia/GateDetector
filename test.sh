@@ -21,8 +21,6 @@ while [ "$#" != 0 ]; do
 	esac
 done
 
-echo $file
-echo $weights
 while IFS= read line
 do
 	set $line

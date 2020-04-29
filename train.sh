@@ -23,5 +23,4 @@ while [ "$#" != 0 ]; do
         esac
 done
 
-echo $weights
 ./darknet detector train obj.data cfg/obj_train.cfg $weigths 
