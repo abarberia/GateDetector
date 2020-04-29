@@ -13,7 +13,8 @@ def main():
 
     # Define folder name with the images, csv files and predictions
     folder_images = 'labels'
-    folders_preds = ['predictions_200x200', 'predictions_650x650', 'predictions_360x360']
+    folders_preds = ['predictions_200x200', 'predictions_650x650', \
+                     'predictions_360x360']
     folder_data = 'data'
     folder_src = 'src'
     img_prefix = 'img'
@@ -34,7 +35,7 @@ def main():
     original_img_height = h
 
     # Set ROC parameters
-    range_roc = list(np.arange(0.05, 1, 0.05))+[1]
+    range_roc = list(np.linspace(0.05, 1, 20))
     thresh_iou = 0.6
 
     fprs = []
@@ -49,7 +50,7 @@ def main():
         roc = ROC(folder_imgs=folder_images, folder_preds=folder_preds,
                   gate_pairs_file=gate_pairs_pkl,
                   gate_area_rescale_x=gate_area_rescale_x,
-                  gate_area_rescale_y=gate_area_rescale_y, 
+                  gate_area_rescale_y=gate_area_rescale_y,
                   rx=original_img_width,
                   ry=original_img_height)
 
@@ -100,18 +101,23 @@ def user_interface(default_values, master, folder_images, folder_data,
     if folder_images not in os.listdir(master):
         cwd = os.getcwd()
         folder_to_run = os.path.join(master.replace(cwd,''),folder_src,'a')[:-1]
-        print(bcolors.WARNING+'\nGround truth folder "{:s}" not there. Make sure to run "python3 {:s}SetupData.py" before running this file\n'.format(folder_images, folder_to_run))
+        print(bcolors.WARNING+'\nGround truth folder "{:s}" not there. Make '
+              'sure to run "python3 {:s}SetupData.py" before running this '
+              'file\n'.format(folder_images, folder_to_run))
         quit()
 
     if data_pckl not in os.listdir(parent_folder):
         cwd = os.getcwd()
         folder_to_run = os.path.join(master.replace(cwd,''),folder_src,'a')[:-1]
-        print(bcolors.WARNING+'\nGround truth pickle "{:s}" not in "{:s}". Make sure to run "python3 {:s}SetupData.py" before running this file\n'.format(data_pckl, parent_folder, folder_to_run))
+        print(bcolors.WARNING+'\nGround truth pickle "{:s}" not in "{:s}".'
+              'Make sure to run "python3 {:s}SetupData.py" before running this '
+              'file\n'.format(data_pckl, parent_folder, folder_to_run))
         quit()
 
 
     while True:
-        txt_in = str(input('Write name of folder(s) with predicted images (Enter for default, press "1" to see options.): '))
+        txt_in = str(input('Write name of folder(s) with predicted images '
+                           '(Enter for default, "1" to see options.): '))
 
         if txt_in == '':
             for value in default_values:
@@ -131,13 +137,16 @@ def user_interface(default_values, master, folder_images, folder_data,
         if valid:
             for folder_in in folders_in:
                 if valid and folder_in not in my_dirs:
-                    print(bcolors.WARNING + '\nCould not find folder "{:s}"'.format(folder_in))
+                    print(bcolors.WARNING + '\nCould not find folder "{:s}"'\
+                        .format(folder_in))
                     valid = False
                 if valid and len(folder_in) < len('predictions'):
-                    print(bcolors.WARNING + '\nInvalid folder selection "{:s}".'.format(folder_in))
+                    print(bcolors.WARNING + '\nInvalid folder selection "{:s}"'
+                        '.'.format(folder_in))
                     valid = False
                 if valid and folder_in[:11] != 'predictions':
-                    print(bcolors.WARNING + '\nInvalid folder selection "{:s}".'.format(folder_in))
+                    print(bcolors.WARNING + '\nInvalid folder selection "{:s}"'
+                        '.'.format(folder_in))
                     valid = False
             if not valid:
                 print('Options are:')
@@ -151,24 +160,34 @@ def user_interface(default_values, master, folder_images, folder_data,
                 files = os.listdir(os.path.join(master, folder_in))
                 files_labels = os.listdir(os.path.join(master,folder_images))
                 if len(files) == 0:
-                    print(bcolors.WARNING+'Folder "{:s}" is empty.'.format(folder_in))
+                    print(bcolors.WARNING+'Folder "{:s}" is empty.'\
+                        .format(folder_in))
                     valid = False
                 for file in files:
                     if file[-4:] == '.txt':
                         if file not in files_labels:
-                            print(bcolors.WARNING + '\nCould not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
-                            print('Remove the file "{:s}" or add its ground truth to the folder "{:s}"'.format(file, folder_images))
+                            print(bcolors.WARNING + '\nCould not find "{:s}"'
+                                'on folder "{:s}" in ground truth folder "{:s}"'
+                                ''.format(file, folder_in, folder_images))
+                            print('Remove the file "{:s}" or add its ground '
+                                'truth to the folder "{:s}"'.format(file, \
+                                folder_images))
                             valid = False
                             quit()
                     if file[-4:] == '.jpg':
                         png_file = file[:-4]+'.png'
                         if png_file not in files_labels:
-                            print(bcolors.WARNING + '\nCould not find "{:s}" on folder "{:s}" in ground truth folder "{:s}"'.format(file, folder_in, folder_images))
-                            print('Remove the file "{:s}" or add its ground truth to the folder "{:s}"'.format(file, folder_images))
+                            print(bcolors.WARNING + '\nCould not find "{:s}" '
+                                'on folder "{:s}" in ground truth folder "{:s}"'
+                                ''.format(file, folder_in, folder_images))
+                            print('Remove the file "{:s}" or add its ground '
+                                'truth to the folder "{:s}"'.format(file, \
+                                    folder_images))
                             valid = False
                             quit()
                         else:
-                            img_name = os.path.join(master, folder_images, png_file)
+                            img_name = os.path.join(master, folder_images, \
+                                                    png_file)
                             img = cv2.imread(img_name)
                             height, width = img.shape[:2]
 
@@ -253,8 +272,8 @@ class ROC:
             self.apply_threshold(thresh)
             self.associate_gates()
             self.calc_confusion_matrix(thresh_iou)
-            if self.folder_imgs == 'labels_200':
-                print("({:f})->TP, FP, FN, TN: {:d}, {:d}, {:d}, {:f}".format(thresh, self.tp, self.fp, self.fn, self.tn))
+            print("({:f})->TP, FP, FN, TN: {:d}, {:d}, {:d}, {:f}"\
+            .format(thresh, self.tp, self.fp, self.fn, self.tn))
 
             if self.tp + self.fn == 0:
                 tpr = 0
@@ -279,9 +298,7 @@ class ROC:
         self.pred_gates = {}
         for img_name in self.img_names:
             updated_list = []
-            # print(img_name)
             for gate in self.predicted_gates[img_name]:
-                # print(gate[1])
                 if gate[1] > thresh:
                     updated_list.append(gate)
             self.pred_gates[img_name] = np.array(updated_list)
@@ -299,9 +316,6 @@ class ROC:
                 gates_pred = self.pred_gates[img_name][:,0]
             else:
                 gates_pred = []
-            # if img_name == 'img_113' and self.folder_imgs == 'labels_raw':
-            #     # print(gate_pairs)
-            #     print(img_name, gates_img, gates_pred)
             if len(gates_img) > len(gates_pred):
                 if len(gates_pred) == 0:
                     gate_pairs = []
@@ -371,8 +385,6 @@ class ROC:
                                 size_diff = 1
                             gate_pair.append([j, i, dist*size_diff])
                         gate_pairs.append(gate_pair)
-                    # if img_name == 'img_113' and self.folder_imgs == 'labels_raw':
-                    #     print(gate_pairs)
                     gate_pairs = np.array(gate_pairs)
                     actual_pairs = []
                     tmp_shape = np.shape(gate_pairs)
@@ -383,7 +395,8 @@ class ROC:
                     actual_pairs = np.array(actual_pairs)
                     for i in range(tmp_shape[0]):
                         if i not in actual_pairs[:,1]:
-                            actual_pairs = np.append(actual_pairs, [[None, i]], axis=0)
+                            actual_pairs = np.append(actual_pairs, [[None, i]],\
+                                                     axis=0)
                     self.gate_pairs[img_name] = actual_pairs
 
             elif len(gates_img) == len(gates_pred):
@@ -443,18 +456,22 @@ class ROC:
     def calc_confusion_matrix(self, thresh_iou):
         for img_name in self.img_names:
             gate_area = 0
+            union_area = 0
             n_gates = 0
             for gate in self.gate_pairs[img_name]:
                 # Gate pairs are: (idx img, idx pred)
                 if gate[0] == None:
                     self.fp += 1
                     gate_area_i = self.calc_gate_area_i(img_name, gate)
+                    union_area_i = gate_area_i
                     n_gates += 1
                 elif gate[1] == None:
                     self.fn += 1
                     gate_area_i = 0
+                    union_area_i = self.calc_polygon_area_i(img_name, gate)
                 else:
-                    iou, gate_area_i = self.calc_iou(img_name, gate)
+                    iou, gate_area_i, union_area_i = self.calc_iou(img_name, 
+                                                                   gate)
                     if iou > thresh_iou:
                         self.tp += 1
                     else:
@@ -462,12 +479,11 @@ class ROC:
                         self.fp += 1
                     n_gates += 1
                 gate_area += gate_area_i
+                union_area += union_area_i
             if n_gates > 0:
                 avg_gate_area = gate_area/n_gates
-                free_area = 1 - gate_area
-                self.tn = free_area / avg_gate_area
-            else:
-                self.tn = 0
+                free_area = 1 - union_area
+                self.tn += free_area / avg_gate_area
 
     # Calculate area of gate
     def calc_gate_area_i(self, img_name, gate):
@@ -478,6 +494,20 @@ class ROC:
         pred_top = coord_pred[1]+coord_pred[3]/2/self.gate_area_rescale_y
         pred_area = (pred_rig - pred_lef) * (pred_top - pred_bot)
         return pred_area
+
+    def calc_polygon_area_i(self, img_name, gate):
+        coord_img = self.img_gates[img_name][int(gate[0])]
+        coord_img_old = self.new_old_gate_match[img_name][tuple(coord_img)]
+
+        coord_img_old = np.array(coord_img_old).astype(float)
+        coord_img_old[0::2] = coord_img_old[0::2]/self.rx
+        coord_img_old[1::2] = coord_img_old[1::2]/self.ry
+
+        img_gate_old = Polygon([(coord_img_old[0], coord_img_old[1]), \
+                                (coord_img_old[2], coord_img_old[3]), \
+                                (coord_img_old[4], coord_img_old[5]), \
+                                (coord_img_old[6], coord_img_old[7])])
+        return img_gate_old.area
 
     # Calculate IOU
     def calc_iou(self, img_name, gate):
@@ -505,7 +535,7 @@ class ROC:
         overlap = img_gate_old.intersection(pred_gate).area
         union = img_gate_old.area + pred_gate.area - overlap
 
-        return overlap/union, pred_gate.area
+        return overlap/union, img_gate_old.area, union
 
     # Get FPR, TPS and labels
     def plot_roc(self):
@@ -537,7 +567,8 @@ class ROC:
         for gate in self.gate_pairs[img_name]:
             if gate[0] != None:
                 coord_img = self.img_gates[img_name][int(gate[0])]
-                coord_img_old = self.new_old_gate_match[img_name][tuple(coord_img)]
+                coord_img_old = self.new_old_gate_match[img_name]\
+                                                       [tuple(coord_img)]
 
                 img_gate_old = np.array([(coord_img_old[0], coord_img_old[1]), \
                                 (coord_img_old[2], coord_img_old[3]), \
@@ -548,14 +579,18 @@ class ROC:
 
             if gate[1] != None:
                 coord_pred = self.pred_gates[img_name][int(gate[1]), 0]
-                pred_lef = int((coord_pred[0]-coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
-                pred_rig = int((coord_pred[0]+coord_pred[2]/2/self.gate_area_rescale_x)*self.rx)
-                pred_bot = int((coord_pred[1]-coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
-                pred_top = int((coord_pred[1]+coord_pred[3]/2/self.gate_area_rescale_y)*self.ry)
+                pred_lef = int((coord_pred[0]-coord_pred[2]/2/self\
+                           .gate_area_rescale_x)*self.rx)
+                pred_rig = int((coord_pred[0]+coord_pred[2]/2/self\
+                           .gate_area_rescale_x)*self.rx)
+                pred_bot = int((coord_pred[1]-coord_pred[3]/2/self\
+                           .gate_area_rescale_y)*self.ry)
+                pred_top = int((coord_pred[1]+coord_pred[3]/2/self\
+                           .gate_area_rescale_y)*self.ry)
 
-                pred_gate = np.array([(pred_lef, pred_top), (pred_rig, pred_top), \
-                            (pred_rig, pred_bot), (pred_lef, pred_bot), \
-                            (pred_lef, pred_top)])
+                pred_gate = np.array([(pred_lef, pred_top), (pred_rig, \
+                            pred_top), (pred_rig, pred_bot), (pred_lef, \
+                            pred_bot), (pred_lef, pred_top)])
                 cv2.polylines(img, [pred_gate], False, black, 2)
 
         cv2.imshow('image', img)
