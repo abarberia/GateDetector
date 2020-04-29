@@ -33,16 +33,13 @@ def main():
     yolo_video = 'video.avi'
     yolo_default_weights = 'darknet53.conv.74'
 
-
     # Define reshape coordinates for the images
     reshape_x = -1
     reshape_y = -1
 
     # Get image size, folder and speed of video from user input
-    reshape_x, reshape_y, folder_yolo_pred, video_speed = user_interface(reshape_x, 
-                                                            reshape_y,
-                                                            folder_yolo_pred)
-
+    reshape_x, reshape_y, folder_yolo_pred, video_speed = \
+        user_interface(reshape_x, reshape_y, folder_yolo_pred)
 
     # Define extra margin for boundary detection [pixels] (+= img width/height)
     extra_x = 1
@@ -119,7 +116,8 @@ def user_interface(default_value_x, default_value_y, folder):
 
         valid = True
         if txt_in not in ['yes', 'y', 'no', 'n', '']:
-            print(bcolors.WARNING+'Input "{:s}" not valid. Should be format ("Y"/"n")'.format(txt_in))
+            print(bcolors.WARNING+'Input "{:s}" not valid. Should be format '
+                 '("Y"/"n")'.format(txt_in))
             valid = False
 
         if valid and txt_in in ['', 'no', 'n']:
@@ -128,43 +126,54 @@ def user_interface(default_value_x, default_value_y, folder):
         if valid and txt_in in ['yes', 'y']:
             while True:
                 print('\nWhat image size do you want? Enter for default')
-                txt_in_2 = str(input('Image size (pixel_width, pixel_height): '))
+                txt_in_2 = str(input('Image size (pixel_width, pixel_height):'
+                                     ' '))
                 valid_2 = True
                 raw_input = txt_in_2
                 txt_in_2 = txt_in_2.split()
-                txt_in_2 = [x.strip('(').strip(',').strip(')') for x in txt_in_2]
+                txt_in_2 = [x.strip('(').strip(',').strip(')') for x in \
+                           txt_in_2]
 
                 if txt_in_2 == []:
                     txt_in_2 = [default_value_x, default_value_y]
                 else:
                     if len(txt_in_2) != 2:
-                        print(bcolors.WARNING+'Input "{:s}" not in format "(int, int)."'.format(raw_input))
+                        print(bcolors.WARNING+'Input "{:s}" not in format "(int'
+                            ', int)."'.format(raw_input))
                         valid_2 = False
                     else:
                         try:
                             txt_in_2[0] = int(txt_in_2[0])
                         except ValueError:
                             valid_2 = False
-                            print(bcolors.WARNING+'Input "{:s}" not in format "(int, int)."'.format(raw_input))
+                            print(bcolors.WARNING+'Input "{:s}" not in format "'
+                                '(int, int)."'.format(raw_input))
                         if valid_2:
                             try: 
                                 txt_in_2[1] = int(txt_in_2[1])
                             except ValueError:
                                 valid_2 = False
-                                print(bcolors.WARNING+'Input "{:s}" not in format "(int, int)."'.format(raw_input))
-                if valid_2 and txt_in_2[0] < 1 and txt_in_2[0] != default_value_x:
-                    print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                                print(bcolors.WARNING+'Input "{:s}" not in '
+                                     'format "(int, int)."'.format(raw_input))
+                if valid_2 and txt_in_2[0] < 1 and txt_in_2[0] != \
+                                                    default_value_x:
+                    print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid'
+                         '.'.format(txt_in_2[0], txt_in_2[1]))
                     valid_2 = False
-                if valid_2 and txt_in_2[1] < 1 and txt_in_2[1] != default_value_y:
-                    print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                if valid_2 and txt_in_2[1] < 1 and txt_in_2[1] != \
+                                                    default_value_y:
+                    print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid'
+                         '.'.format(txt_in_2[0], txt_in_2[1]))
                     valid_2 = False
                 if valid_2 and txt_in_2[0] == default_value_x:
                     if txt_in_2[1] != default_value_y:
-                        print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                        print(bcolors.WARNING+'Values "({:d}, {:d})" are not '
+                             'valid.'.format(txt_in_2[0], txt_in_2[1]))
                         valid_2 = False
                 if valid_2 and txt_in_2[1] == default_value_y:
                     if txt_in_2[0] != default_value_x:
-                        print(bcolors.WARNING+'Values "({:d}, {:d})" are not valid.'.format(txt_in_2[0], txt_in_2[1]))
+                        print(bcolors.WARNING+'Values "({:d}, {:d})" are not '
+                             'valid.'.format(txt_in_2[0], txt_in_2[1]))
                         valid_2 = False
                 if not valid_2:
                     print('Try again'+bcolors.ENDC)
@@ -188,17 +197,24 @@ def user_interface(default_value_x, default_value_y, folder):
 
     # Handle video speed
     while True:
-        txt_in = str(input('Select video playback speed up (int): '))
+        txt_in = str(input('How fast do you want the video to be? (int) [1-10]:'
+                    ' '))
         valid = True
         if txt_in.strip() == '':
             txt_in = '1'
         try:
             txt_in = int(txt_in)
         except ValueError:
-            print(bcolors.WARNING+'Input "{:s}" is not an integer.'.format(txt_in))
+            print(bcolors.WARNING+'Input "{:s}" is not an integer.'
+                 .format(txt_in))
             valid = False
         if valid and txt_in < 1:
-            print(bcolors.WARNING+'Number "{:d}" is not valid. Value has to be positive.'.format(txt_in))
+            print(bcolors.WARNING+'Number "{:d}" is not valid. Value has to be '
+                 'positive.'.format(txt_in))
+            valid = False
+        if valid and txt_in > 10:
+            print(bcolors.WARNING+'Number "{:d}" is too high, you will not see '
+                 'anything.'.format(txt_in))
             valid = False
         if not valid:
             print('Try again\n'+bcolors.ENDC)
