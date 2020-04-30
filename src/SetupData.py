@@ -12,7 +12,7 @@ def main():
     master = os.path.dirname(cwd)
 
     # Define folder name with the images, masks and csv files for data handler
-    folder_imgs = 'WashingtonOBRace'
+    folder_imgs = 'WashingtonOBRace/WashingtonOBRace'
     csv_name = 'corners.csv'
     img_prefix = 'img'
     mask_prefix = 'mask'
