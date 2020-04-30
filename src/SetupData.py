@@ -256,8 +256,8 @@ class DataHandle:
             self.files = os.listdir(self.folder)
         except FileNotFoundError:
             print(bcolors.WARNING + 'Dataset is not present. Download from '
-            'https://brightspace.tudelft.nl/d2l/le/content/191999/viewContent/'
-            '1639866/View and extract here.')
+            '"https://brightspace.tudelft.nl/d2l/le/content/191999/viewContent/'
+            '1639866/View" and extract here.')
             quit()
 
         self.init_csv(csv_name)
