@@ -20,7 +20,6 @@ def main():
     img_prefix = 'img'
     gate_pairs_pickle = 'gate_pairs.p'
 
-
     folders_preds, w, h = user_interface(folders_preds, master, folder_images,
                                    folder_data, folder_src, gate_pairs_pickle)
 
@@ -36,7 +35,7 @@ def main():
 
     # Set ROC parameters
     range_roc = list(np.linspace(0.05, 1, 20))
-    thresh_iou = 0.6
+    thresh_iou = 0.7
 
     fprs = []
     tprs = []
@@ -61,6 +60,21 @@ def main():
         tprs.append(tpr)
         labels.append(labels)
 
+    # folders_preds = ['Size 200x200', 'Size 650x650', 'Size 360x360']
+    for coordinates in zip(fprs, tprs, folders_preds):
+        plt.plot(coordinates[0], coordinates[1], label=coordinates[2])
+    plt.plot([0,1], [0,1])
+
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.title('IOU={:.2f}'.format(thresh_iou), fontsize=14)
+    plt.xlabel('FPR', fontsize=14)
+    plt.ylabel('TPR', fontsize=14)
+    plt.grid()
+    # plt.legend(fontsize=14, bbox_to_anchor=(1, 0.5))
+    plt.legend(fontsize=14)
+    plt.show()
+
     # Test implementation
     folder_preds = os.path.join(master, 'predictions_360x360')
     roc = ROC(folder_imgs=folder_images, folder_preds=folder_preds,
@@ -69,25 +83,9 @@ def main():
                 gate_area_rescale_y=gate_area_rescale_y, 
                 rx=original_img_width,
                 ry=original_img_height)
+    roc.calc_roc(range_roc=[0.6], thresh_iou=thresh_iou)
+    roc.test_threshold('img_374.jpg')
 
-    roc.calc_roc(range_roc=[0.5], thresh_iou=thresh_iou)
-    fpr, tpr, labels = roc.plot_roc()
-
-    fprs.append(fpr)
-    tprs.append(tpr)
-    labels.append(labels)
-    roc.test_threshold('img_51.jpg')
-
-    coords_used = []
-    for coordinates in zip(fprs, tprs, folders_preds):
-        if (coordinates[0], coordinates[1]) not in coords_used:
-            plt.plot(coordinates[0], coordinates[1], label=coordinates[2])
-    
-    plt.xlabel('FPR')
-    plt.ylabel('TPR')
-    plt.grid()
-    plt.legend()
-    plt.show()
 
 # User interface for folder name
 def user_interface(default_values, master, folder_images, folder_data, 
@@ -272,8 +270,8 @@ class ROC:
             self.apply_threshold(thresh)
             self.associate_gates()
             self.calc_confusion_matrix(thresh_iou)
-            print("({:f})->TP, FP, FN, TN: {:d}, {:d}, {:d}, {:f}"\
-            .format(thresh, self.tp, self.fp, self.fn, self.tn))
+            # print("({:f})->TP, FP, FN, TN: {:d}, {:d}, {:d}, {:f}"\
+            # .format(thresh, self.tp, self.fp, self.fn, self.tn))
 
             if self.tp + self.fn == 0:
                 tpr = 0
@@ -544,11 +542,11 @@ class ROC:
         self.labels = ['0.0'] + self.labels
 
         # coords_used = []
-        # for idx, label in enumerate(self.labels):
-        #     if tuple([self.fpr[idx], self.tpr[idx]]) not in coords_used:
-        #         plt.annotate(label, (self.fpr[idx], self.tpr[idx]))
-        #         coords_used.append(tuple([self.fpr[idx], self.tpr[idx]]))
-
+        # for label, tpr, fpr in zip(self.labels, self.tpr, self.fpr):
+        #     if tuple(fpr, tpr) not in coords_used:
+        #         plt.annotate(label, (fpr, tpr))
+        #         coords_used.append(tuple(fpr, tpr))
+    
         return self.fpr, self.tpr, self.labels
 
     # Test threshold calculator by showing output gates on image
@@ -594,7 +592,7 @@ class ROC:
                 cv2.polylines(img, [pred_gate], False, black, 2)
 
         cv2.imshow('image', img)
-        # cv2.waitKey(0)
+        cv2.waitKey(0)
 
 
 if __name__ == "__main__":

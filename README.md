@@ -4,16 +4,17 @@ detector algorithm from the data setup, passing by the training, testing, until
 the analysis of the data. The algorithm uses a YOLO CNN developed in: 
 http://pjreddie.com/darknet/.
 
-To run the programit the user first has to upload a folder with the images and 
+To run the program, the user first has to upload a folder with the images and 
 the corresponding csv of ground truth gates to the main folder. The name of this
 folder should be 'WashingtonOBRace' or can be otherwise changed by changing the 
 variable named 'folder_imgs' in the file 'SetupData.py' to the direction of the 
-corresponding folder. Extracting the folder provided by the lecturers is 
+corresponding folder. Extracting the folder provided by the lecturers of the 
+course is enough.
 
 
 4 Steps are necessary to perform the whole analysis of the data. Step 1 deals 
-with setting up the data in the correct format. Step 2 (optional) train the 
-NN weights. Step 3 run the algorithm on the data setup. Step 4 analyse the 
+with setting up the data in the correct format. Step 2 (optional) trains the 
+NN weights. Step 3 runs the algorithm on the data setup. Step 4 analyse the 
 results.
 
 1. Run the command with your preferred values on the UI. Default will be the 
@@ -43,8 +44,9 @@ perform the analysis on. Run the command
         with the corresponding image size. When no command -w is used, the 
         default is 'weights/size_360.weights'
 
-    2. If you want to see your gate detector in action live you can run the 
-   command. OpenCV must be activated from step 2. (Only works for square images)
+    2. If you want to **see the gate detector in action live** you can run the 
+   command. Step 1 must be performed and OpenCV must be activated from step 2.
+   (Only works for square images)
         >sh video.s
 
 4. To perform data analysis, run the command
@@ -55,6 +57,6 @@ perform the analysis on. Run the command
     If you want to perform data analysis on your own custom size, you first need
     to run the command from section 3.1 ("sh test.sh")
 
-If you have further questions about the usage of the bash files, you can use the
-help documentation running for example:
+If you have further questions about the usage of any of the bash files, you can 
+use the help documentation running for example:
 >sh train.sh -h
