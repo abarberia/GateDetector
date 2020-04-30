@@ -23,11 +23,11 @@ default image size and a video playback speed of 1.
     >python3 src/SetupData.py
 
 2. (Optional) Train the darknet network to the images you uploaded. It is first 
-important to 'make' the darkent directory, so run the command on the folder. If 
-you want to make use of the GPU on your computer, CUDNN or OpenCV, change the 
-corresponding values in the Makefile to 1, and make the directory again with 
-every change you perform. You are now ready to train your network. Run the 
-command:
+important to 'make' the darkent directory, so run the "make" command on the 
+folder. If you want to make use of the GPU on your computer, CUDNN or OpenCV, 
+change the corresponding values in the Makefile to 1, and make the directory 
+again with every change you perform. You are now ready to train your network. 
+Run the command:
 
     >sh train.sh
 
