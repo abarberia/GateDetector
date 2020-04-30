@@ -4,6 +4,11 @@ detector algorithm from the data setup, passing by the training, testing, until
 the analysis of the data. The algorithm uses a YOLO CNN developed in: 
 http://pjreddie.com/darknet/.
 
+**IMPORTANT**
+Must do submodule update before any other command. Otherwise stuff breaks and it
+does not know what is going on.
+>git submodule update --recursive --init
+
 To run the program, the user first has to upload a folder with the images and 
 the corresponding csv of ground truth gates to the main folder. The name of this
 folder should be 'WashingtonOBRace' or can be otherwise changed by changing the 

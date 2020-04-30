@@ -20,7 +20,7 @@ def main():
     img_prefix = 'img'
     gate_pairs_pickle = 'gate_pairs.p'
 
-    folders_preds, w, h = user_interface(folders_preds, master, folder_images,
+    folders_preds = user_interface(folders_preds, master, folder_images,
                                    folder_data, folder_src, gate_pairs_pickle)
 
     # Configure names and paths
@@ -30,8 +30,8 @@ def main():
     # Rescaling factor for gate size to compensate from overprediction
     gate_area_rescale_x = 2
     gate_area_rescale_y = 2
-    original_img_width = w
-    original_img_height = h
+    original_img_width = 360
+    original_img_height = 360
 
     # Set ROC parameters
     range_roc = list(np.linspace(0.05, 1, 20))
@@ -83,7 +83,7 @@ def main():
                 rx=original_img_width,
                 ry=original_img_height)
     roc.calc_roc(range_roc=[0.6], thresh_iou=thresh_iou)
-    roc.test_threshold('img_374.jpg')
+    roc.test_threshold('img_270.jpg')
 
 
 # User interface for folder name
@@ -171,30 +171,13 @@ def user_interface(default_values, master, folder_images, folder_data,
                                 folder_images))
                             valid = False
                             quit()
-                    if file[-4:] == '.jpg':
-                        png_file = file[:-4]+'.png'
-                        if png_file not in files_labels:
-                            print(bcolors.WARNING + '\nCould not find "{:s}" '
-                                'on folder "{:s}" in ground truth folder "{:s}"'
-                                ''.format(file, folder_in, folder_images))
-                            print('Remove the file "{:s}" or add its ground '
-                                'truth to the folder "{:s}"'.format(file, \
-                                    folder_images))
-                            valid = False
-                            quit()
-                        else:
-                            img_name = os.path.join(master, folder_images, \
-                                                    png_file)
-                            img = cv2.imread(img_name)
-                            height, width = img.shape[:2]
-
         if not valid:
             print('Try again\n'+bcolors.ENDC)
             continue
 
         if valid:
             break
-    return folders_in, width, height
+    return folders_in
 
 
 class ROC:

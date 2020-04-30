@@ -252,7 +252,13 @@ class DataHandle:
     def __init__(self, folder_imgs, csv_name, img_prefix, mask_prefix, 
                  shape_x=-1, shape_y=-1):
         self.folder = folder_imgs
-        self.files = os.listdir(self.folder)
+        try:
+            self.files = os.listdir(self.folder)
+        except FileNotFoundError:
+            print(bcolors.WARNING + 'Dataset is not present. Download from '
+            'https://brightspace.tudelft.nl/d2l/le/content/191999/viewContent/'
+            '1639866/View and extract here.')
+            quit()
 
         self.init_csv(csv_name)
         self.init_img(img_prefix, mask_prefix, shape_x, shape_y)
@@ -386,10 +392,6 @@ class YOLO_DataHandle:
     def mkdirs(self):
         try:
             os.mkdir(self.pred_folder)
-        except FileExistsError:
-            pass
-        try:
-            os.mkdir(self.labels_folder)
         except FileExistsError:
             pass
         try:
