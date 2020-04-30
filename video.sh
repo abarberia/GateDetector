@@ -32,4 +32,4 @@ while [ "$#" != 0 ]; do
 	esac
 done
 
-./darknet detector demo obj.data cfg/obj_test.cfg $weights $video -dont_show -out $output
+./darknet detector demo obj.data cfg/obj_test.cfg $weights $video -dont_show -out $output -thresh 0.6

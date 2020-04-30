@@ -402,7 +402,6 @@ class YOLO_DataHandle:
         for img_name in self.datahandle.img_names:
             img_name = format_name(img_name)+'.png'
             full_img_name = os.path.join(self.labels_folder, img_name)
-            # print(self.datahandle.images[img_name[:-4]])
             cv2.imwrite(full_img_name, self.datahandle.images[img_name[:-4]][0])
 
     # Generate image txt files in ground truth folder
@@ -454,7 +453,6 @@ class YOLO_DataHandle:
                         + " " + str(x_width) + " " + str(y_width) + "\n")
                 new_old_gate_match[tuple([x_center, y_center, x_width, \
                                           y_width])] = coord
-            # print(label, new_old_gate_match)
             self.new_old_gate_match[label] = new_old_gate_match
 
     # Get bounding box dimension from csv coordinates

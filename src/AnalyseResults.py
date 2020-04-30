@@ -60,7 +60,6 @@ def main():
         tprs.append(tpr)
         labels.append(labels)
 
-    # folders_preds = ['Size 200x200', 'Size 650x650', 'Size 360x360']
     for coordinates in zip(fprs, tprs, folders_preds):
         plt.plot(coordinates[0], coordinates[1], label=coordinates[2])
     plt.plot([0,1], [0,1])
@@ -543,9 +542,9 @@ class ROC:
 
         # coords_used = []
         # for label, tpr, fpr in zip(self.labels, self.tpr, self.fpr):
-        #     if tuple(fpr, tpr) not in coords_used:
+        #     if tuple([fpr, tpr]) not in coords_used:
         #         plt.annotate(label, (fpr, tpr))
-        #         coords_used.append(tuple(fpr, tpr))
+        #         coords_used.append(tuple([fpr, tpr]))
     
         return self.fpr, self.tpr, self.labels
 
