@@ -214,7 +214,7 @@ def user_interface(default_value_x, default_value_y, folder):
             valid = False
         if valid and txt_in > 10:
             print(bcolors.WARNING+'Number "{:d}" is too high, you will not see '
-                 'anything.'.format(txt_in))
+                 'anything. Try [1-10]'.format(txt_in))
             valid = False
         if not valid:
             print('Try again\n'+bcolors.ENDC)
